@@ -1,32 +1,82 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
+	_ "github.com/mattn/go-sqlite3"
+	//"strings"
 
-	"github.com/go-xorm/xorm"
-	_ "github.com/lunny/godbc"
+	"./DAL"
 	"time"
 )
 
 func main() {
-	engine, err := xorm.NewEngine("odbc", "driver={SQL Server};SERVER=127.0.0.1;UID=sa;PWD=123;DATABASE=TodoDB")
-	if err != nil {
+	rows := DAL.GetRows("SELECT * FROM " + "tmpTable")
+
+	var id int
+	var name string
+	for rows.Next() {
+		if err := rows.Scan(&id, &name); err == nil {
+			fmt.Println(id, " ", name)
+		}
+
 	}
-	defer engine.Close()
-	engine.ShowSQL = true
-	fmt.Println("init")
-	//检查是否存在数据表
-	// if has, _ := engine.IsTableExist(new(Task)); !has {
-	// 	engine.CreateTables(new(Task))
+	// rows := QuerryData("tmpTable")
+
+	// var id string
+	// var name string
+	// for rows.Next() {
+	// 	if err := rows.Scan(&id, &name); err == nil {
+	// 		fmt.Println("id:", id, " name:", name)
+	// 	}
 	// }
-	engine.CreateTables(new(Task))
+	//fmt.Println("什么垃圾go啊, 配置个运行环境都死人了")
+}
 
-	//插入数据
-	// user := new(User)
-	// user.Name = "myname"
-	// affected, err := engine.Insert(user)
-	fmt.Println("hello world.")
+func QuerryData(table string) *sql.Rows {
+	db, err := sql.Open("sqlite3", "./odb.s3db")
+	checkErr(err)
 
+	rows, err := db.Query("SELECT * FROM " + table)
+	checkErr(err)
+
+	db.Close()
+
+	return rows
+}
+
+func QueryPageData(index int) string {
+
+	rows := QuerryData("pageinfo")
+
+	var id int
+	var data string
+	page := ""
+
+	for rows.Next() {
+		if err := rows.Scan(&id, &data); err == nil && id == index {
+			page = data
+		}
+	}
+
+	return page
+}
+
+func QueryDateData() map[int]string {
+
+	rows := QuerryData("dateinfo")
+
+	var date int
+	var data string
+
+	memoryCache := make(map[int]string)
+	for rows.Next() {
+		if err := rows.Scan(&date, &data); err == nil {
+			memoryCache[date] = data
+		}
+	}
+
+	return memoryCache
 }
 
 type Task struct {
@@ -35,6 +85,13 @@ type Task struct {
 	Content    string
 	CreateDate time.Time
 	FinishDate time.Time
+}
+
+func checkErr(err error) {
+	if err != nil {
+		//panic(err)
+		fmt.Println("panic: " + err.Error())
+	}
 }
 
 // var x *xorm.Engine
